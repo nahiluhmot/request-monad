@@ -28,6 +28,7 @@ Note that there is no logic about _how_ to get and return the strings in `getNam
 ```haskell
 import Control.Monad
 import Control.Monad.Request
+import System.IO
 
 getNameAndAge :: Monad m => RequestT String String m (String, Int)
 getNameAndAge = do
@@ -36,7 +37,7 @@ getNameAndAge = do
     return (name, age)
 
 prompt :: String -> IO String
-prompt str = putStr str >> getLine
+prompt str = putStr str >> hFlush stdout >> getLine
 
 main :: IO ()
 main = do
@@ -71,25 +72,25 @@ The code below adds JSON deserialization to each response.
 import Control.Monad
 import Control.Monad.Request
 import qualified Data.Aeson as A
-import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as B
 
 deserialize :: (A.FromJSON a, Monad m) => B.ByteString -> m (Maybe a)
 deserialize = return . A.decode
 
-tryTwice :: Monad m => RequestT B.ByteString (Maybe A.Value) m (Maybe A.Value)
+tryTwice :: Monad m => RequestT B.ByteString B.ByteString m (Maybe A.Value)
 tryTwice = mapResponseT deserialize $ do
     a <- send "request one"
     b <- send "request two"
     return $ a `mplus` b
 
-handleRequest :: Monad m => B.ByteString -> m B.ByteString
+handleRequest :: Monad m => B.ByteString -> B.ByteString
 handleRequest "request one" = return "not json"
-handleRequest x             = "15"
+handleRequest x             = "[15]"
 
 main :: IO ()
 main = do
     let res = runRequest tryTwice handleRequest
-    print $ res -- Prints "Just (Number 15)"
+    print $ res -- Prints "Just (Array (fromList [Number 15.0]))"
 ```
 
 ## TODO
