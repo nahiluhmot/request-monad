@@ -2,6 +2,27 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+
+{- |
+Module      :  Control.Monad.Request.Lazy
+Copyright   :  (c) Tom Hulihan <hulihan.tom159@gmail.com> 2014,
+License     :  MIT
+
+Maintainer  :  hulihan.tom159@gmail.com
+Stability   :  experimental
+Portability :  non-portable (multi-parameter type classes)
+
+[Computation type:] Compuations that send requests and handle responses
+
+[Binding strategy:] Response callbacks are composed with the binding function
+
+[Useful for:] Implementation-agnostic requests (i.e. making real requests versus
+mocking), adding middlewares.
+
+[Example type:] @'Request' String String a@
+
+The Request monad
+-}
 module Control.Monad.Request.Lazy ( -- * MonadRequest
                                     MonadRequest(..)
                                     -- * Request
@@ -32,7 +53,7 @@ import Data.Functor.Identity
 -- 'Request' and its associated functions
 
 -- | A Request monad, parameterized by the request type, @r@, and response type,
--- @r'@. 'return' produces a pure value, while '>>=' composes the actions
+-- @r'@.
 -- together.
 type Request r r' = RequestT r r' Identity
 
@@ -42,20 +63,20 @@ request :: r              -- ^ The request
         -> Request r r' a -- ^ The resulting computation
 request r g = requestT r (Identity . g)
 
--- | Evaluate a 'Request' action.
+-- | Evaluate a @'Request' r r\' a@ action.
 runRequest :: Request r r' a -- ^ The computation to run
            -> (r -> r')      -- ^ A function that turns requests into responses
            -> a              -- ^ The final result of the computation
 runRequest act f = runIdentity $ runRequestT act (Identity . f)
 
--- | Given a mapping from @x@ to @r@, transform a computation that sends
--- requests of type @x@ to one that sends requests of type @r@.
+-- | Given a @x -> r@, transform a computation that sends requests of type @x@
+-- into one that sends requests of type @r@.
 mapRequest :: (x -> r)        -- ^ The middleware function
            -> Request x r' a  -- ^ The computation which sends @x@
            -> Request r r' a  -- ^ The computation which sends @r@
 mapRequest f = mapRequestT (Identity . f)
 
--- | Given a mapping from @r'@ to @x@, transform a computation handles responses
+-- | Given a mapping from @r\' -> x@, transform a computation handles responses
 -- of type @x@ to one that handles responses of type @r'@.
 mapResponse :: (r' -> x)      -- ^ The middleware function
             -> Request r x a  -- ^ The computation which handles @x@
@@ -65,23 +86,22 @@ mapResponse f = mapResponseT (Identity . f)
 --------------------------------------------------------------------------------
 -- 'RequestT' and its associated functions
 
--- | A Request monad, parameterized by the request type, @r@, response type,
--- @r'@, and inner monad, @m@. 'return' produces a @m a@, while '>>=' composes
--- the actions.
+-- | A request monad, parameterized by the request type, @r@, response type,
+-- @r'@, and inner monad, @m@.
 data RequestT r r' m a
         = Pure a
         | Request r (r' -> RequestT r r' m a)
         | Lift (m (RequestT r r' m a))
 
 -- | This function takes a request and monadic response handler to produce a
--- 'RequestT'.
+-- @'RequestT' r r\' m a@.
 requestT :: Monad m => r                 -- ^ The request
                     -> (r' -> m a)       -- ^ The response callback
                     -> RequestT r r' m a -- ^ The resulting computation
 requestT r g = Request r (Lift . liftM Pure . g)
 
--- | Given a 'RequestT' and a mapping from requests to responses, return a
--- monadic computation which produces @a@.
+-- | Given a @'RequestT' r r\' m a@ and a mapping from requests to responses,
+-- return a monadic computation which produces @a@.
 runRequestT :: Monad m => RequestT r r' m a -- ^ The computation to run
                        -> (r -> m r')       -- ^ The request function
                        -> m a               -- ^ The resulting computation

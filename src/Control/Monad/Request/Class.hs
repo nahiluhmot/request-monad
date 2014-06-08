@@ -3,8 +3,26 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
--- | This module the 'MonadRequest' type class, with instances for other
--- transformers.
+{- |
+Module      :  Control.Monad.Request.Class
+Copyright   :  (c) Tom Hulihan <hulihan.tom159@gmail.com> 2014,
+License     :  MIT
+
+Maintainer  :  hulihan.tom159@gmail.com
+Stability   :  experimental
+Portability :  non-portable (multi-parameter type classes)
+
+[Computation type:] Compuations that send requests and handle responses
+
+[Binding strategy:] Response callbacks are composed with the binding function
+
+[Useful for:] Implementation-agnostic requests (i.e. making real requests versus
+mocking), adding middlewares.
+
+[Example type:] @'Control.Monad.Request.Lazy.Request' String String a@
+
+The Request monad
+-}
 module Control.Monad.Request.Class ( MonadRequest(..) ) where
 
 import Control.Monad
@@ -24,7 +42,9 @@ import Control.Monad.Trans.Writer.Lazy as WriterL
 import Control.Monad.Trans.Writer.Strict as WriterS
 import Data.Monoid
 
--- | Type type class generalizes monadic requests.
+-- | This type class generalizes monadic requests.
+--
+-- Parameters:
 --
 --  * @r@ - The type of request
 --
