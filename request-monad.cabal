@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                request-monad
-version:             0.0.0.0
+version:             0.1.0.0
 synopsis:            A transformer for generic requests
 homepage:            github.com/nahiluhmot/request-monad
 license:             MIT
