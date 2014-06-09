@@ -2,7 +2,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-
 {- |
 Module      :  Control.Monad.Request.Lazy
 Copyright   :  (c) Tom Hulihan <hulihan.tom159@gmail.com> 2014,
@@ -74,14 +73,14 @@ runRequest act f = runIdentity $ runRequestT act (Identity . f)
 mapRequest :: (x -> r)        -- ^ The middleware function
            -> Request x r' a  -- ^ The computation which sends @x@
            -> Request r r' a  -- ^ The computation which sends @r@
-mapRequest f = mapRequestT (Identity . f)
+mapRequest f = mapRequestT (return . f)
 
 -- | Given a mapping from @r\' -> x@, transform a computation handles responses
 -- of type @x@ to one that handles responses of type @r'@.
 mapResponse :: (r' -> x)      -- ^ The middleware function
             -> Request r x a  -- ^ The computation which handles @x@
             -> Request r r' a -- ^ The computation which handles @r'@
-mapResponse f = mapResponseT (Identity . f)
+mapResponse f = mapResponseT (return . f)
 
 --------------------------------------------------------------------------------
 -- 'RequestT' and its associated functions
@@ -112,22 +111,22 @@ runRequestT m req =
     in  go m
 
 -- | Turn a computation that requests @x@ into a computation that requests @r@.
-mapRequestT :: Monad m => (x -> m r)        -- ^ The middleware function
-                       -> RequestT x r' m a -- ^ The @x@-requesting computation
-                       -> RequestT r r' m a -- ^ The @r@-requesting computation
+mapRequestT :: Monad m => (x -> RequestT r r' m r) -- ^ The middleware
+                       -> RequestT x r' m a        -- ^ The @x@-requester
+                       -> RequestT r r' m a        -- ^ The @r@-requester
 mapRequestT f =
     let go      (Pure a) = Pure a
-        go (Request x g) = lift (f x) >>= flip Request (go . g)
+        go (Request x g) = f x >>= flip Request (go . g)
         go    (Lift act) = Lift (liftM go act)
     in  go
 
 -- | Turn a computation that handles @x@ into a computation that handles @r'@.
-mapResponseT :: Monad m => (r' -> m x)       -- ^ The middleware function
-                        -> RequestT r x m a  -- ^ The @x@-handling computation
-                        -> RequestT r r' m a -- ^ The @r'@-handling computation
+mapResponseT :: Monad m => (r' -> RequestT r r' m x) -- ^ The middleware
+                        -> RequestT r x m a          -- ^ The @x@-handler
+                        -> RequestT r r' m a         -- ^ The @r'@-handler
 mapResponseT f =
     let go      (Pure a) = Pure a
-        go (Request r g) = Request r (go . g <=< lift . f)
+        go (Request r g) = Request r (go . g <=< f)
         go    (Lift act) = Lift (liftM go act)
     in  go
 
