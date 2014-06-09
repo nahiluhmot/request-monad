@@ -1,5 +1,5 @@
 name:                request-monad
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            A transformer for generic requests
 description:
     An MTL-style monad that can be used to perform requests. Using RequestT
@@ -27,5 +27,5 @@ library
   exposed-modules:     Control.Monad.Request,
                        Control.Monad.Request.Class,
                        Control.Monad.Request.Lazy
-  ghc-options:         -O3 -Wall
+  ghc-options:         -Wall
   default-language:    Haskell2010
