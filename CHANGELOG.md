@@ -1,3 +1,8 @@
+# 0.3.0.0
+
+* Use `FreeT` monad to implement `RequestT`
+* Change the type of callback given to `requestT` from `r' -> m a` to `r' -> RequestT r r' m a`
+
 # 0.2.0.0
 
 * Generalize `mapRequestT` and `mapResponseT` so that requests may be performed in middleware
