@@ -1,5 +1,5 @@
 name:                request-monad
-version:             0.3.0.0
+version:             0.3.0.1
 synopsis:            A transformer for generic requests
 description:
     An MTL-style monad that can be used to perform requests. Using RequestT
