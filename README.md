@@ -95,5 +95,4 @@ main = do
 
 ## TODO
 
-* Make `RequestT` an instance of `MonadCont` and `MonadFix`
 * Add a strict version of `RequestT`
