@@ -60,7 +60,7 @@ request r g = requestT r (return . g)
 runRequest :: Request r r' a -- ^ The computation to run
            -> (r -> r')      -- ^ A function that turns requests into responses
            -> a              -- ^ The final result of the computation
-runRequest act f = runIdentity $ runRequestT act (Identity . f)
+runRequest act f = runIdentity $ runRequestT act (return . f)
 
 -- | Given a @x -> r@, transform a computation that sends requests of type @x@
 -- into one that sends requests of type @r@.
@@ -88,35 +88,38 @@ type RequestT r r' = FreeT (RequestF r r')
 requestT :: Monad m => r                         -- ^ The request
                     -> (r' -> RequestT r r' m a) -- ^ The response callback
                     -> RequestT r r' m a         -- ^ The resulting computation
-requestT r g = send r >>= g
+requestT r g = wrap (RequestF (r, g))
 
 -- | Given a @'RequestT' r r\' m a@ and a mapping from requests to responses,
 -- return a monadic computation which produces @a@.
 runRequestT :: Monad m => RequestT r r' m a -- ^ The computation to run
                        -> (r -> m r')       -- ^ The request function
                        -> m a               -- ^ The resulting computation
-runRequestT m f = iterT (\(Request r g) -> f r >>= g) m
+runRequestT m f = iterT (\(RequestF (r, g)) -> f r >>= g) m
 
 -- | Turn a computation that requests @x@ into a computation that requests @r@.
 mapRequestT :: Monad m => (x -> RequestT r r' m r) -- ^ The middleware
                        -> RequestT x r' m a        -- ^ The @x@-requester
                        -> RequestT r r' m a        -- ^ The @r@-requester
-mapRequestT f = iterTM (\(Request x g) -> f x >>= send >>= g)
+mapRequestT f = iterTM (\(RequestF (x, g)) -> f x >>= send >>= g)
 
 -- | Turn a computation that handles @x@ into a computation that handles @r'@.
 mapResponseT :: Monad m => (r' -> RequestT r r' m x) -- ^ The middleware
                         -> RequestT r x m a          -- ^ The @x@-handler
                         -> RequestT r r' m a         -- ^ The @r'@-handler
-mapResponseT f = iterTM (\(Request r g) -> send r >>= f >>= g)
+mapResponseT f = iterTM (\(RequestF (r, g)) -> send r >>= f >>= g)
 
 --------------------------------------------------------------------------------
 -- Type class instances from this library.
 
 instance Monad m => MonadRequest r r' (RequestT r r' m) where
-    send r = liftF (Request r id)
+    send r = liftF (RequestF (r, id))
+
+--------------------------------------------------------------------------------
+-- 'RequestF' and its functor instance.
 
 -- This is the base Functor used to construct 'RequestT'.
-data RequestF r r' f = Request r (r' -> f)
+newtype RequestF r r' f = RequestF (r, r' -> f)
 
 instance Functor (RequestF r r') where
-    fmap f (Request r g) = Request r (f . g)
+    fmap f (RequestF (r, g)) = RequestF (r, f . g)
